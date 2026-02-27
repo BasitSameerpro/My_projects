@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pakistan Weather API — Free Weather Data for Developers & AI</title>
+  <meta name="description" content="Free, open-source weather API covering 150+ cities across Pakistan. Built for developers, AI agents, and LLM tool use. JSON, Text, and CSV output formats.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0e1a;
+      --bg-card: #111827;
+      --bg-card-hover: #1a2332;
+      --bg-code: #0d1117;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --text-bright: #f8fafc;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --green: #34d399;
+      --orange: #fb923c;
+      --purple: #a78bfa;
+      --pink: #f472b6;
+      --border: #1e293b;
+      --radius: 12px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Animated Background ─────────────────────────────────────── */
+    .bg-glow {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .bg-glow::before, .bg-glow::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.3;
+      animation: float 20s ease-in-out infinite;
+    }
+    .bg-glow::before {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+      top: -200px; right: -100px;
+    }
+    .bg-glow::after {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, var(--purple) 0%, transparent 70%);
+      bottom: -200px; left: -100px;
+      animation-delay: -10s;
+    }
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.05); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+
+    /* ─── Layout ──────────────────────────────────────────────────── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    section {
+      padding: 80px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-of-type { border-bottom: none; }
+
+    /* ─── Nav ─────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 14, 26, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    nav .nav-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    nav .logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-bright);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    nav .logo span { font-size: 1.3rem; }
+    nav .nav-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+    nav .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    nav .nav-links a:hover { color: var(--accent); }
+
+    /* ─── Hero ────────────────────────────────────────────────────── */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+    .hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--accent-glow);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero .badge .dot {
+      width: 8px; height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      color: var(--text-bright);
+      line-height: 1.15;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent), var(--purple), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+    .hero .cta-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      font-family: var(--font);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0ea5e9);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(56, 189, 248, 0.4);
+    }
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+    }
+
+    /* ─── Live Demo ───────────────────────────────────────────────── */
+    .live-demo {
+      max-width: 700px;
+      margin: 40px auto 0;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .demo-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: rgba(30, 41, 59, 0.5);
+      border-bottom: 1px solid var(--border);
+    }
+    .demo-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+    .demo-dot.red { background: #ef4444; }
+    .demo-dot.yellow { background: #eab308; }
+    .demo-dot.green { background: #22c55e; }
+    .demo-url {
+      flex: 1;
+      margin-left: 8px;
+      padding: 6px 12px;
+      background: var(--bg);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+    .demo-body {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: var(--text);
+      overflow-x: auto;
+    }
+    .demo-body .key { color: var(--accent); }
+    .demo-body .str { color: var(--green); }
+    .demo-body .num { color: var(--orange); }
+    .demo-body .bool { color: var(--purple); }
+
+    /* ─── Section Headers ─────────────────────────────────────────── */
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 12px;
+    }
+    .section-desc {
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      margin-bottom: 40px;
+      max-width: 650px;
+    }
+
+    /* ─── Feature Cards ───────────────────────────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: all 0.25s;
+    }
+    .feature-card:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+    .feature-card .icon {
+      font-size: 1.6rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .feature-card h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 6px;
+    }
+    .feature-card p {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    /* ─── Endpoint Table ──────────────────────────────────────────── */
+    .endpoint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: all 0.2s;
+    }
+    .endpoint:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      background: var(--bg-card-hover);
+    }
+    .method {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--green);
+      flex-shrink: 0;
+    }
+    .endpoint-path {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      color: var(--text-bright);
+      flex: 1;
+    }
+    .endpoint-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      text-align: right;
+    }
+
+    /* ─── Code Blocks ─────────────────────────────────────────────── */
+    .code-block {
+      position: relative;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: rgba(30, 41, 59, 0.4);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .code-header .lang {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.7rem;
+    }
+    .copy-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+    .code-content {
+      padding: 16px 20px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-content .comment { color: #6b7280; }
+    .code-content .keyword { color: var(--purple); }
+    .code-content .string { color: var(--green); }
+    .code-content .url { color: var(--accent); }
+    .code-content .flag { color: var(--orange); }
+
+    /* ─── Format Tabs ─────────────────────────────────────────────── */
+    .format-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      background: var(--bg-card);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      width: fit-content;
+    }
+    .format-tab {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--font);
+      transition: all 0.2s;
+    }
+    .format-tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .format-panel { display: none; }
+    .format-panel.active { display: block; }
+
+    /* ─── Security ────────────────────────────────────────────────── */
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .security-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .security-item .check {
+      color: var(--green);
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .security-item strong {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text-bright);
+      margin-bottom: 2px;
+    }
+    .security-item span {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    /* ─── Footer ──────────────────────────────────────────────────── */
+    footer {
+      padding: 60px 0 40px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    footer .footer-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 12px;
+    }
+    footer .footer-links {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    footer .footer-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    footer .footer-links a:hover { color: var(--accent); }
+    footer .copyright {
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      opacity: 0.6;
+    }
+
+    /* ─── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      nav .nav-links { gap: 12px; }
+      nav .nav-links a { font-size: 0.8rem; }
+      .hero h1 { font-size: 2rem; }
+      .endpoint { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .endpoint-desc { text-align: left; }
+      section { padding: 50px 0; }
+    }
+
+    /* ─── Scroll animations ───────────────────────────────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <!-- ─── Nav ──────────────────────────────────────────────────────── -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="logo"><span>🌤️</span> PK Weather API</a>
+      <ul class="nav-links">
+        <li><a href="#endpoints">Endpoints</a></li>
+        <li><a href="#formats">Formats</a></li>
+        <li><a href="#cli">CLI</a></li>
+        <li><a href="#security">Security</a></li>
+        <li><a href="https://pakistan-weather-api.vercel.app/api/v1/weather/lahore" target="_blank">Try Live →</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ─── Hero ─────────────────────────────────────────────────────── -->
+  <header class="hero container">
+    <div class="badge"><div class="dot"></div> Live on Vercel — 150+ cities</div>
+    <h1>Weather Data for <span class="gradient">All of Pakistan</span></h1>
+    <p>Free API covering every province, AJK, and Gilgit-Baltistan. Built for developers building apps and AI agents using weather as a tool.</p>
+    <div class="cta-group">
+      <a href="https://pakistan-weather-api.vercel.app/api/v1/weather/lahore" target="_blank" class="btn btn-primary">🚀 Try the API</a>
+      <a href="#endpoints" class="btn btn-secondary">📖 Read the Docs</a>
+    </div>
+
+    <!-- Live Demo Preview -->
+    <div class="live-demo">
+      <div class="demo-bar">
+        <div class="demo-dot red"></div>
+        <div class="demo-dot yellow"></div>
+        <div class="demo-dot green"></div>
+        <div class="demo-url">pakistan-weather-api.vercel.app/api/v1/weather/lahore</div>
+      </div>
+      <div class="demo-body">{
+  <span class="key">"ok"</span>: <span class="bool">true</span>,
+  <span class="key">"city"</span>: <span class="str">"Lahore"</span>,
+  <span class="key">"province"</span>: <span class="str">"Punjab"</span>,
+  <span class="key">"country"</span>: <span class="str">"Pakistan"</span>,
+  <span class="key">"current"</span>: {
+    <span class="key">"temperature_c"</span>: <span class="num">26</span>,
+    <span class="key">"feels_like_c"</span>: <span class="num">27</span>,
+    <span class="key">"condition"</span>: <span class="str">"Mainly Clear"</span>,
+    <span class="key">"condition_icon"</span>: <span class="str">"🌤️"</span>,
+    <span class="key">"humidity_percent"</span>: <span class="num">42</span>,
+    <span class="key">"wind_speed_kmh"</span>: <span class="num">3</span>,
+    <span class="key">"wind_direction"</span>: <span class="str">"ESE"</span>,
+    <span class="key">"uv_index"</span>: <span class="num">1</span>
+  },
+  <span class="key">"source"</span>: <span class="str">"Open-Meteo"</span>
+}</div>
+    </div>
+  </header>
+
+  <!-- ─── Features ─────────────────────────────────────────────────── -->
+  <section class="container fade-in">
+    <div class="section-label">Why Use This</div>
+    <h2>Built for Developers & AI Agents</h2>
+    <p class="section-desc">No API keys, no signup, no cost. Just call the endpoint and get clean weather data for any city in Pakistan.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="icon">🆓</span>
+        <h4>100% Free</h4>
+        <p>Powered by Open-Meteo. No API key needed, no rate-gouging, no surprise bills.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🏙️</span>
+        <h4>150+ Cities</h4>
+        <p>Every province, AJK, Gilgit-Baltistan, and ICT. From Karachi to Chitral to Gwadar.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🤖</span>
+        <h4>AI-Ready</h4>
+        <p>Clean text format for LLMs. CLI tool for AI agents. JSON for apps. CSV for data science.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">⚡</span>
+        <h4>Fast & Cached</h4>
+        <p>5-minute in-memory cache. Auto-fallback to WeatherAPI.com if primary source is down.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🔒</span>
+        <h4>Secure</h4>
+        <p>Helmet security headers, rate limiting, input sanitization, no data leakage.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">📊</span>
+        <h4>DataFrame Ready</h4>
+        <p>CSV output loads directly into pandas with one line of Python. Perfect for data pipelines.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Endpoints ────────────────────────────────────────────────── -->
+  <section id="endpoints" class="container fade-in">
+    <div class="section-label">API Reference</div>
+    <h2>Endpoints</h2>
+    <p class="section-desc">Base URL: <code style="color:var(--accent); background:var(--bg-card); padding:3px 8px; border-radius:5px; font-family:var(--mono); font-size:0.85rem;">https://pakistan-weather-api.vercel.app</code></p>
+
+    <div class="endpoint-list">
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="endpoint-path">/api/v1/weather/:city</span>
+        <span class="endpoint-desc">Current weather</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="endpoint-path">/api/v1/forecast/:city</span>
+        <span class="endpoint-desc">5-day forecast</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="endpoint-path">/api/v1/cities</span>
+        <span class="endpoint-desc">All supported cities</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="endpoint-path">/api/v1/cities/search?q=</span>
+        <span class="endpoint-desc">Search cities</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="endpoint-path">/api/v1/health</span>
+        <span class="endpoint-desc">Health check</span>
+      </div>
+    </div>
+
+    <h3 style="margin-top:40px;">Query Parameters</h3>
+    <div class="endpoint-list">
+      <div class="endpoint">
+        <span class="method" style="background:rgba(167,139,250,0.15);color:var(--purple);">PARAM</span>
+        <span class="endpoint-path">?format=json | text | csv</span>
+        <span class="endpoint-desc">Output format</span>
+      </div>
+      <div class="endpoint">
+        <span class="method" style="background:rgba(167,139,250,0.15);color:var(--purple);">PARAM</span>
+        <span class="endpoint-path">?days=7</span>
+        <span class="endpoint-desc">Forecast days (1-16)</span>
+      </div>
+      <div class="endpoint">
+        <span class="method" style="background:rgba(251,146,60,0.15);color:var(--orange);">KEY</span>
+        <span class="endpoint-path">?apikey=YOUR_KEY</span>
+        <span class="endpoint-desc">Use your own WeatherAPI.com key</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Output Formats ──────────────────────────────────────────── -->
+  <section id="formats" class="container fade-in">
+    <div class="section-label">Output</div>
+    <h2>Three Formats, One Endpoint</h2>
+    <p class="section-desc">Every weather endpoint supports JSON, text, and CSV output. Just add <code style="color:var(--accent); background:var(--bg-card); padding:2px 6px; border-radius:4px; font-family:var(--mono); font-size:0.85rem;">?format=</code> to switch.</p>
+
+    <div class="format-tabs">
+      <button class="format-tab active" onclick="showFormat('json')">JSON</button>
+      <button class="format-tab" onclick="showFormat('text')">Text</button>
+      <button class="format-tab" onclick="showFormat('csv')">CSV / DataFrame</button>
+    </div>
+
+    <div id="format-json" class="format-panel active">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">GET</span>
+          <span style="color:var(--text-dim); font-family:var(--mono);">/api/v1/weather/karachi</span>
+        </div>
+        <div class="code-content">{
+  <span class="key">"ok"</span>: <span class="bool">true</span>,
+  <span class="key">"city"</span>: <span class="str">"Karachi"</span>,
+  <span class="key">"province"</span>: <span class="str">"Sindh"</span>,
+  <span class="key">"current"</span>: {
+    <span class="key">"temperature_c"</span>: <span class="num">25</span>,
+    <span class="key">"condition"</span>: <span class="str">"Clear Sky"</span>,
+    <span class="key">"condition_icon"</span>: <span class="str">"☀️"</span>,
+    <span class="key">"wind_speed_kmh"</span>: <span class="num">23</span>,
+    <span class="key">"humidity_percent"</span>: <span class="num">72</span>
+  },
+  <span class="key">"source"</span>: <span class="str">"Open-Meteo"</span>
+}</div>
+      </div>
+      <p style="color:var(--text-dim); font-size:0.88rem; margin-top:12px;">Best for: web apps, mobile apps, API integrations</p>
+    </div>
+
+    <div id="format-text" class="format-panel">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">GET</span>
+          <span style="color:var(--text-dim); font-family:var(--mono);">/api/v1/weather/karachi?format=text</span>
+        </div>
+        <div class="code-content">Karachi, Sindh, Pakistan | 25°C (Feels 26°C) | ☀️ Clear Sky | Wind: 23 km/h WSW | Humidity: 72% | UV: 2</div>
+      </div>
+      <p style="color:var(--text-dim); font-size:0.88rem; margin-top:12px;">Best for: AI agents, CLI tools, chatbots, LLM function calling</p>
+    </div>
+
+    <div id="format-csv" class="format-panel">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">GET</span>
+          <span style="color:var(--text-dim); font-family:var(--mono);">/api/v1/forecast/karachi?format=csv</span>
+        </div>
+        <div class="code-content" style="font-size:0.75rem;">city,province,country,lat,lon,date,temp_max_c,temp_min_c,condition,...
+Karachi,Sindh,Pakistan,24.86,66.99,2026-02-27,28,22,"Clear Sky",...
+Karachi,Sindh,Pakistan,24.86,66.99,2026-02-28,29,23,"Partly Cloudy",...</div>
+      </div>
+      <div class="code-block" style="margin-top:12px;">
+        <div class="code-header"><span class="lang">Python</span></div>
+        <div class="code-content"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd
+df = pd.read_csv(<span class="string">"https://pakistan-weather-api.vercel.app/api/v1/forecast/lahore?format=csv"</span>)</div>
+      </div>
+      <p style="color:var(--text-dim); font-size:0.88rem; margin-top:12px;">Best for: data science, pandas, Jupyter notebooks, Excel, data pipelines</p>
+    </div>
+  </section>
+
+  <!-- ─── CLI Tool ─────────────────────────────────────────────────── -->
+  <section id="cli" class="container fade-in">
+    <div class="section-label">For AI Agents</div>
+    <h2>CLI Tool</h2>
+    <p class="section-desc">The CLI calls Open-Meteo directly — no server needed. AI agents can run it as a terminal command and parse the one-line response.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="lang">Terminal</span></div>
+      <div class="code-content"><span class="comment"># Current weather (one-liner — perfect for AI parsing)</span>
+$ <span class="keyword">pk-weather</span> lahore
+Lahore, Punjab, Pakistan | 26°C (Feels 27°C) | 🌤️ Mainly Clear | Wind: 3 km/h ESE | Humidity: 42%
+
+<span class="comment"># JSON output</span>
+$ <span class="keyword">pk-weather</span> karachi <span class="flag">--json</span>
+
+<span class="comment"># 5-day forecast</span>
+$ <span class="keyword">pk-weather</span> islamabad <span class="flag">--forecast</span>
+
+<span class="comment"># Custom forecast range</span>
+$ <span class="keyword">pk-weather</span> quetta <span class="flag">--forecast --days 7</span>
+
+<span class="comment"># Search cities</span>
+$ <span class="keyword">pk-weather</span> <span class="flag">--search</span> mar
+🔍 Mardan, Lakki Marwat
+
+<span class="comment"># List all 150+ cities</span>
+$ <span class="keyword">pk-weather</span> <span class="flag">--list</span></div>
+    </div>
+
+    <div style="margin-top:24px; padding:20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);">
+      <h4 style="color:var(--text-bright); margin-bottom: 8px;">Install Globally</h4>
+      <div class="code-block" style="margin:0;">
+        <div class="code-content">$ npm install -g pakistan-weather-api</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── BYOK (Bring Your Own Key) ───────────────────────────────── -->
+  <section class="container fade-in">
+    <div class="section-label">Optional</div>
+    <h2>Bring Your Own API Key</h2>
+    <p class="section-desc">Want to use <a href="https://weatherapi.com" target="_blank" style="color:var(--accent);">WeatherAPI.com</a> instead? Pass your free API key and it becomes the primary source.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP Request</span></div>
+      <div class="code-content"><span class="comment"># Via query parameter</span>
+GET <span class="url">/api/v1/weather/lahore<span class="flag">?apikey=YOUR_KEY</span></span>
+
+<span class="comment"># Via header</span>
+curl -H <span class="string">"X-API-Key: YOUR_KEY"</span> <span class="url">https://pakistan-weather-api.vercel.app/api/v1/weather/lahore</span></div>
+    </div>
+  </section>
+
+  <!-- ─── Security ─────────────────────────────────────────────────── -->
+  <section id="security" class="container fade-in">
+    <div class="section-label">Trust</div>
+    <h2>Security Hardened</h2>
+    <p class="section-desc">Production-grade security built in from day one.</p>
+
+    <div class="security-grid">
+      <div class="security-item">
+        <span class="check">✓</span>
+        <div><strong>Helmet</strong><span>Security headers (CSP, X-Frame, etc.)</span></div>
+      </div>
+      <div class="security-item">
+        <span class="check">✓</span>
+        <div><strong>Rate Limiting</strong><span>100 req / 15 min per IP</span></div>
+      </div>
+      <div class="security-item">
+        <span class="check">✓</span>
+        <div><strong>Input Sanitization</strong><span>XSS & injection prevention</span></div>
+      </div>
+      <div class="security-item">
+        <span class="check">✓</span>
+        <div><strong>Error Masking</strong><span>No stack traces or internals leaked</span></div>
+      </div>
+      <div class="security-item">
+        <span class="check">✓</span>
+        <div><strong>Body Limit</strong><span>10kb payload cap</span></div>
+      </div>
+      <div class="security-item">
+        <span class="check">✓</span>
+        <div><strong>0 Vulnerabilities</strong><span>Clean npm audit</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Cities ───────────────────────────────────────────────────── -->
+  <section class="container fade-in">
+    <div class="section-label">Coverage</div>
+    <h2>150+ Cities Across Pakistan</h2>
+    <p class="section-desc">Every government-recognized city from every province, territory, and region.</p>
+
+    <div class="feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="feature-card" style="text-align:center;">
+        <span class="icon">🟢</span>
+        <h4>Punjab</h4>
+        <p>~55 cities</p>
+      </div>
+      <div class="feature-card" style="text-align:center;">
+        <span class="icon">🔵</span>
+        <h4>Sindh</h4>
+        <p>~25 cities</p>
+      </div>
+      <div class="feature-card" style="text-align:center;">
+        <span class="icon">🟠</span>
+        <h4>KPK</h4>
+        <p>~22 cities</p>
+      </div>
+      <div class="feature-card" style="text-align:center;">
+        <span class="icon">🟤</span>
+        <h4>Balochistan</h4>
+        <p>~24 cities</p>
+      </div>
+      <div class="feature-card" style="text-align:center;">
+        <span class="icon">🟣</span>
+        <h4>AJK</h4>
+        <p>~9 cities</p>
+      </div>
+      <div class="feature-card" style="text-align:center;">
+        <span class="icon">⚪</span>
+        <h4>GB & ICT</h4>
+        <p>~11 cities</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Footer ───────────────────────────────────────────────────── -->
+  <footer class="container">
+    <div class="footer-name">Built by Basit Sameer</div>
+    <div class="footer-links">
+      <a href="mailto:basitsameer732@gmail.com">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        basitsameer732@gmail.com
+      </a>
+      <a href="https://github.com/BasitSameerpro" target="_blank">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <a href="https://basitsameer.vercel.app" target="_blank">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        Portfolio
+      </a>
+    </div>
+    <div class="copyright">MIT License · Open Source · Made in Pakistan 🇵🇰</div>
+  </footer>
+
+  <!-- ─── Scripts ──────────────────────────────────────────────────── -->
+  <script>
+    // Format tabs
+    function showFormat(format) {
+      document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.format-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('format-' + format).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // Scroll animations
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Copy buttons
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const code = btn.closest('.code-block').querySelector('.code-content').textContent;
+        navigator.clipboard.writeText(code);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+      });
+    });
+  </script>
+</body>
+</html>
